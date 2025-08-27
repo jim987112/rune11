@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>每日盧恩抽符 Daily Rune</title>
+  <meta name="description" content="一鍵抽取今日盧恩符文。支援分享連結、PWA 安裝、離線使用。">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-512.png">
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    html, body { margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Noto Sans TC, 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .sub { color: #666; margin-bottom: 16px; font-size: 14px; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .rune { font-size: 72px; line-height: 1; text-align: center; margin: 12px 0; }
+    .name { text-align:center; font-size: 18px; font-weight: 600; }
+    .kw { text-align:center; color:#444; margin-top: 6px; }
+    .desc { margin-top: 12px; color:#333; line-height: 1.6; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; margin-top: 12px; }
+    button { border:1px solid #ddd; padding:10px 14px; border-radius:10px; background:#fff; cursor:pointer; }
+    button:active { transform: translateY(1px); }
+    .muted { color:#666; font-size: 13px; }
+    .small { font-size: 12px; }
+    .footer { margin-top: 24px; color:#777; font-size: 12px; }
+    .grid { display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
+    .mini { border:1px solid #eee; border-radius:8px; padding:8px; text-align:center; }
+    .mini .r { font-size: 28px; }
+    .mini .n { font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>每日盧恩抽符</h1>
+  <div class="sub">每天一抽，來自 Elder Futhark 24 符文。可安裝到主畫面，離線也能用。</div>
+
+  <div class="card" id="card">
+    <div class="muted small" id="dateInfo"></div>
+    <div class="rune" id="sym">—</div>
+    <div class="name" id="name">請抽取今日符文</div>
+    <div class="kw" id="kw"></div>
+    <div class="desc" id="desc"></div>
+    <div class="row">
+      <button id="draw">抽取「今日符文」</button>
+      <button id="random">隨機抽（不鎖定日期）</button>
+      <button id="share">複製分享連結</button>
+      <button id="all">查看全部 24 符</button>
+    </div>
+    <div class="muted small" style="margin-top:8px;">
+      提示：今日抽取是依據「日期 + 可選的 user 參數」產生的固定結果；同一天重進結果相同。
+    </div>
+  </div>
+
+  <div id="gridWrap" style="display:none; margin-top:16px;" class="card">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="footer">© 2025 Daily Rune · 本工具僅作個人修習指引，請搭配你的自由意志與判斷。</div>
+</div>
+
+<script>
+const RUNES = [{"sym": "ᚠ", "name": "Fehu", "sound": "F", "keywords": "財富、能量流動、資源", "desc": "物質與能量的流入；管理資源、啟動行動。"}, {"sym": "ᚢ", "name": "Uruz", "sound": "U", "keywords": "力量、生命力、原始本能", "desc": "恢復體力、鍛鍊意志，面對挑戰的原始動能。"}, {"sym": "ᚦ", "name": "Thurisaz", "sound": "Th", "keywords": "守護、門檻、挑戰", "desc": "在門前站崗；審慎抉擇，別衝動跨越。"}, {"sym": "ᚨ", "name": "Ansuz", "sound": "A", "keywords": "智慧、溝通、靈感", "desc": "向上連結的靈感；說清楚、聽明白。"}, {"sym": "ᚱ", "name": "Raidō", "sound": "R", "keywords": "旅程、進展、路徑", "desc": "透過行動讓事情前進；規劃路線，按計劃推進。"}, {"sym": "ᚲ", "name": "Kaunan (Kenaz)", "sound": "K", "keywords": "火焰、洞察、技能", "desc": "點燈照見真相；學習技能、精進工藝。"}, {"sym": "ᚷ", "name": "Gebo", "sound": "G", "keywords": "交換、禮物、關係", "desc": "等價交換；付出與接受的平衡。"}, {"sym": "ᚹ", "name": "Wunjō", "sound": "W/V", "keywords": "喜悅、和諧、滿足", "desc": "專注於當下的喜悅；團隊氣氛與和諧。"}, {"sym": "ᚺ", "name": "Hagalaz", "sound": "H", "keywords": "突變、風暴、破壞後重建", "desc": "風暴淬鍊；接受打掉重練，為重生清場。"}, {"sym": "ᚾ", "name": "Naudhiz", "sound": "N", "keywords": "限制、需求、耐心", "desc": "在限制中找到方法；熱情需被節制與磨練。"}, {"sym": "ᛁ", "name": "Īsaz (Isa)", "sound": "I", "keywords": "冰、停滯、聚焦", "desc": "暫停觀望；讓心靜下來，專注核心。"}, {"sym": "ᛃ", "name": "Jēra (Jera)", "sound": "J/Y", "keywords": "收穫、循環、時機", "desc": "播種有時、收穫有時；耐心等待成熟。"}, {"sym": "ᛇ", "name": "Eihwaz", "sound": "Ei", "keywords": "韌性、通道、延遲的保護", "desc": "穩住陣腳；延遲是種保護與調整。"}, {"sym": "ᛈ", "name": "Perthro", "sound": "P", "keywords": "機運、秘密、命運之擲", "desc": "接受未知的安排；創造機會的容器。"}, {"sym": "ᛉ", "name": "Algiz", "sound": "Z", "keywords": "保護、直覺、神聖", "desc": "調高直覺與界線；求助更高的守護。"}, {"sym": "ᛋ", "name": "Sōwilō (Sowilo)", "sound": "S", "keywords": "太陽、成功、清晰", "desc": "向光前行；看見最有效的路徑。"}, {"sym": "ᛏ", "name": "Tīwaz (Tiwaz)", "sound": "T", "keywords": "正義、紀律、戰士之道", "desc": "以紀律與正直勝利；承擔與犧牲。"}, {"sym": "ᛒ", "name": "Berkano", "sound": "B", "keywords": "成長、滋養、更新", "desc": "像樹般生長；療癒與新生。"}, {"sym": "ᛖ", "name": "Ehwaz", "sound": "E", "keywords": "夥伴、協作、移動", "desc": "與可靠的夥伴同行；互信帶動前進。"}, {"sym": "ᛗ", "name": "Mannaz", "sound": "M", "keywords": "人類、自我、社群", "desc": "自我覺察與互助；調整自我與群體關係。"}, {"sym": "ᛚ", "name": "Laguz", "sound": "L", "keywords": "水、情感、直覺流動", "desc": "順勢而為；用直覺導航。"}, {"sym": "ᛜ", "name": "Ingwaz", "sound": "Ng", "keywords": "內化、孕育、完成循環", "desc": "先內化再行動；把能量存入種子。"}, {"sym": "ᛞ", "name": "Dagaz", "sound": "D", "keywords": "破曉、覺醒、突破", "desc": "臨界一刻；從黑夜跨入白天。"}, {"sym": "ᛟ", "name": "Ōthala (Othala)", "sound": "O", "keywords": "家園、傳承、資產", "desc": "回到根源；整合資產與血脈的力量。"}];
+
+function hashString(s) {
+  // Simple deterministic hash
+  let h = 2166136261;
+  for (let i=0;i<s.length;i++) {
+    h ^= s.charCodeAt(i);
+    h += (h<<1) + (h<<4) + (h<<7) + (h<<8) + (h<<24);
+  }
+  // convert to positive 32-bit
+  return (h >>> 0);
+}
+
+function pickBySeed(seed) {
+  const h = hashString(seed);
+  return h % RUNES.length;
+}
+
+function getTodayString(tzOffsetMinutes=null) {
+  // Use device local date by default. Optionally allow tz offset in minutes.
+  const now = new Date();
+  if (tzOffsetMinutes !== null) {
+    // convert now to target timezone by shifting minutes
+    const localOffset = now.getTimezoneOffset();
+    const diff = tzOffsetMinutes - (-localOffset);
+    now.setMinutes(now.getMinutes() + diff);
+  }
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function renderRune(r) {
+  document.getElementById('sym').textContent = r.sym;
+  document.getElementById('name').textContent = `${r.name}（${r.sound}）`;
+  document.getElementById('kw').textContent = r.keywords;
+  document.getElementById('desc').textContent = r.desc;
+}
+
+function showGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  RUNES.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'mini';
+    div.innerHTML = `<div class="r">${r.sym}</div><div class="n">${r.name}</div>`;
+    div.title = r.keywords + '｜' + r.desc;
+    div.addEventListener('click', ()=> renderRune(r));
+    g.appendChild(div);
+  });
+  document.getElementById('gridWrap').style.display = 'block';
+}
+
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+
+function setDateInfo(text) {
+  document.getElementById('dateInfo').textContent = text;
+}
+
+function doDailyDraw() {
+  const user = getParam('user') || '';
+  const tz = getParam('tz'); // minutes offset, e.g., 480 for UTC+8
+  const tzMin = tz ? parseInt(tz,10) : null;
+  const today = getTodayString(tzMin);
+  const seed = today + '|' + user;
+  const idx = pickBySeed(seed);
+  const r = RUNES[idx];
+  renderRune(r);
+  setDateInfo(`今日：${today} ｜ 使用種子（date+user）：${user ? '有' : '無'}`);
+  localStorage.setItem('daily-seed', seed);
+  localStorage.setItem('daily-index', idx);
+}
+
+function doRandomDraw() {
+  const idx = Math.floor(Math.random() * RUNES.length);
+  renderRune(RUNES[idx]);
+  const now = new Date();
+  setDateInfo(`隨機抽取：${now.toLocaleString()}`);
+}
+
+document.getElementById('draw').addEventListener('click', doDailyDraw);
+document.getElementById('random').addEventListener('click', doRandomDraw);
+document.getElementById('all').addEventListener('click', showGrid);
+document.getElementById('share').addEventListener('click', ()=> {
+  const user = getParam('user') || prompt('輸入可選的 user 標識（例：yourname）','');
+  const tz = getParam('tz') || '';
+  const url = new URL(window.location.href);
+  if (user) url.searchParams.set('user', user); else url.searchParams.delete('user');
+  if (tz) url.searchParams.set('tz', tz);
+  navigator.clipboard.writeText(url.toString()).then(()=> alert('已複製分享連結！')).catch(()=> alert('無法複製，請手動複製網址。'));
+});
+
+// Auto: daily draw on first load
+doDailyDraw();
+
+// PWA: service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js'));
+}
+</script>
+</body>
+</html>
