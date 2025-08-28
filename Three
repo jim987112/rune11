@@ -1,1 +1,216 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>每日盧恩三符占卜</title>
+  <meta name="description" content="每日三符占卜（過去 / 現在 / 未來）— Elder Futhark 24 符文">
+  <!-- 若你有 manifest.json，保留此行 -->
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root{
+      --bg1: linear-gradient(180deg,#0f1014,#15151b);
+      --card-bg: rgba(255,255,255,0.03);
+      --muted: #bdbdbd;
+      --accent: #ffd580;
+    }
+    html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg1);color:#fff}
+    .wrap{max-width:920px;margin:0 auto;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}
+    h1{font-size:18px;margin:0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:rgba(255,255,255,0.06);border:0;padding:8px 12px;border-radius:10px;color:#fff;cursor:pointer;font-weight:600}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .card{border-radius:12px;min-height:180px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--card-bg);position:relative;overflow:hidden}
+    .card .rune{font-size:60px;line-height:1;margin:6px 0 4px 0}
+    .card .title{font-weight:700}
+    .card .kw{font-style:italic;color:var(--muted);margin-top:6px}
+    .card .desc{margin-top:8px;color:#eee;line-height:1.45;font-size:14px;padding:0 6px}
+    .small{font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+    /* background image fallback style when no image file */
+    .bg-fallback{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));}
+    /* overlay to make text readable */
+    .card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.45));pointer-events:none}
+    /* small screens */
+    @media (max-width:420px){ .card .rune{font-size:46px} .card{min-height:150px;padding:12px} h1{font-size:16px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>每日盧恩 — 三符占卜</h1>
+      <div class="controls">
+        <button id="dailyBtn">今日三符</button>
+        <button id="randomBtn">隨機三符</button>
+        <button id="allBtn">查看全部符文</button>
+      </div>
+    </header>
 
+    <main id="grid" class="grid" aria-live="polite"></main>
+
+    <div id="info" class="small"></div>
+    <div style="height:20px;"></div>
+  </div>
+
+<script>
+/* ------------------------
+   24 個 Elder Futhark 符文（可自行調整中文說明）
+   ------------------------ */
+const RUNES = [
+  {sym:'ᚠ',name:'Fehu',sound:'F',keywords:'財富、資源',desc:'物質與能量的流入；管理資源與行動。'},
+  {sym:'ᚢ',name:'Uruz',sound:'U',keywords:'力量、生命力',desc:'原始力量與康健，面對挑戰的勇氣。'},
+  {sym:'ᚦ',name:'Thurisaz',sound:'Th',keywords:'守護、衝突',desc:'警惕與防衛；面對阻礙時保持冷靜。'},
+  {sym:'ᚨ',name:'Ansuz',sound:'A',keywords:'智慧、溝通',desc:'信息、靈感與溝通的力量。'},
+  {sym:'ᚱ',name:'Raidho',sound:'R',keywords:'旅程、節奏',desc:'行動與秩序，跟隨正確的節奏前進。'},
+  {sym:'ᚲ',name:'Kaunan',sound:'K',keywords:'洞察、啟發',desc:'光明與技巧，學習與匠心。'},
+  {sym:'ᚷ',name:'Gebo',sound:'G',keywords:'給予、交換',desc:'關係中的互惠與禮物。'},
+  {sym:'ᚹ',name:'Wunjo',sound:'W',keywords:'喜悅、和諧',desc:'內在喜悅與團隊和諧。'},
+  {sym:'ᚺ',name:'Hagalaz',sound:'H',keywords:'破壞、轉變',desc:'突變或風暴帶來重整的機會。'},
+  {sym:'ᚾ',name:'Nauthiz',sound:'N',keywords:'需求、限制',desc:'被限制時尋找修正與耐心。'},
+  {sym:'ᛁ',name:'Isa',sound:'I',keywords:'停滯、凝視',desc:'暫停、清空，等待時機。'},
+  {sym:'ᛃ',name:'Jera',sound:'J',keywords:'收成、循環',desc:'時機成熟，穩定的收穫。'},
+  {sym:'ᛇ',name:'Eihwaz',sound:'Ei',keywords:'韌性、通道',desc:'守護與耐心，轉化的連接點。'},
+  {sym:'ᛈ',name:'Perthro',sound:'P',keywords:'機運、神秘',desc:'未知的容器，運氣與內在秘密。'},
+  {sym:'ᛉ',name:'Algiz',sound:'Z',keywords:'保護、直覺',desc:'靈性保護與直覺警示。'},
+  {sym:'ᛋ',name:'Sowilo',sound:'S',keywords:'太陽、成功',desc:'光明、成功、清晰的方向。'},
+  {sym:'ᛏ',name:'Tiwaz',sound:'T',keywords:'正義、紀律',desc:'公平、責任與勇敢的行為。'},
+  {sym:'ᛒ',name:'Berkano',sound:'B',keywords:'成長、更新',desc:'療癒、孕育與新生的能量。'},
+  {sym:'ᛖ',name:'Ehwaz',sound:'E',keywords:'夥伴、變動',desc:'可靠夥伴與關係的流動。'},
+  {sym:'ᛗ',name:'Mannaz',sound:'M',keywords:'自我、群體',desc:'自我與社群互動的課題。'},
+  {sym:'ᛚ',name:'Laguz',sound:'L',keywords:'水、直覺',desc:'情感流動與直覺導航。'},
+  {sym:'ᛜ',name:'Ingwaz',sound:'Ng',keywords:'內化、孕育',desc:'內在孕育，為行動做準備。'},
+  {sym:'ᛞ',name:'Dagaz',sound:'D',keywords:'黎明、突破',desc:'覺醒與轉機，黑暗到光明的門檻。'},
+  {sym:'ᛟ',name:'Othala',sound:'O',keywords:'根基、遺產',desc:'家園、傳承與長遠資產。'}
+];
+
+/* ------------------------
+   助手函式：取得網址參數、產生每天固定種子、雜湊、選背景
+   - 種子：用 YYYY-MM-DD + 可選 user 參數 -> 同一天相同結果
+   - tz: 可用 ?tz=480 （台灣 480）來指定使用哪個時區的「日期」
+   ------------------------ */
+function getParam(k){ try{ return new URLSearchParams(location.search).get(k) }catch(e){ return null } }
+function todayString(tzMin=null){
+  const d = new Date();
+  if(tzMin!==null){
+    const utc = d.getTime() + d.getTimezoneOffset()*60000;
+    const local = new Date(utc + tzMin*60000);
+    return local.toISOString().slice(0,10);
+  }
+  return d.toISOString().slice(0,10);
+}
+// 非秘密雜湊（純前端），用於產生可預測的索引
+function hash32(str){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+}
+function pickIndex(seed){
+  return hash32(seed) % RUNES.length;
+}
+
+// 背景圖清單（根據你的 assets/bg/ 放的檔名調整）
+const BG_LIST = [
+  'assets/bg/rune1.png',
+  'assets/bg/rune2.png',
+  'assets/bg/ocean1.jpg',
+  'assets/bg/land1.jpg'
+];
+// 若背景圖不存在或未上傳，檢查檔案能否載入，若失敗會 fallback 使用漸層背景
+function bgForSeed(seed){
+  // seeded but deterministic
+  const idx = hash32(seed + '-bg') % BG_LIST.length;
+  return BG_LIST[idx];
+}
+
+/* ------------------------
+   渲染函式：建立卡片 DOM
+   ------------------------ */
+function makeCard(slotName, rune, bgPath, fallback){
+  const div = document.createElement('div');
+  div.className = 'card';
+  // 嘗試使用圖片背景；如果圖片不存在會自動顯示空白背景（瀏覽器 404）
+  if(bgPath && !fallback){
+    div.style.backgroundImage = `url('${bgPath}')`;
+    div.style.backgroundSize = 'cover';
+    div.style.backgroundPosition = 'center';
+  } else {
+    div.classList.add('bg-fallback');
+  }
+  div.innerHTML = `
+    <div class="title">${slotName}</div>
+    <div class="rune">${rune.sym}</div>
+    <div class="title">${rune.name}（${rune.sound}）</div>
+    <div class="kw">${rune.keywords}</div>
+    <div class="desc">${rune.desc}</div>
+  `;
+  return div;
+}
+
+/* ------------------------
+   三符：每日種子版（穩定）與隨機版
+   - dailyThree()：使用 date + user 種子 -> 同一日固定
+   - randomThree(): 立即隨機三符
+   ------------------------ */
+function dailyThree(){
+  const user = getParam('user') || '';
+  const tz = getParam('tz');
+  const tzMin = tz ? parseInt(tz,10) : null;
+  const day = todayString(tzMin);
+  const base = day + '|' + user;
+  const slots = ['過去','現在','未來'];
+  const out = document.getElementById('grid');
+  out.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const seed = base + '|' + i;
+    const idx = pickIndex(seed);
+    const rune = RUNES[idx];
+    // 背景以 seed 決定（這樣同一天同 user 結果固定）
+    const bg = bgForSeed(seed);
+    // 我們不在前端檢查檔案存在性，若你沒上傳圖片會顯示瀏覽器錯誤圖 / fallback
+    out.appendChild(makeCard(slots[i], rune, bg, false));
+  }
+  setInfo(`今日三符（${day}）  — 種子: ${user?user:'無'}`);
+}
+
+function randomThree(){
+  const out = document.getElementById('grid');
+  out.innerHTML = '';
+  const slots = ['過去','現在','未來'];
+  for(let i=0;i<3;i++){
+    const idx = Math.floor(Math.random()*RUNES.length);
+    const rune = RUNES[idx];
+    const bg = BG_LIST[Math.floor(Math.random()*BG_LIST.length)];
+    out.appendChild(makeCard(slots[i], rune, bg, false));
+  }
+  setInfo(`隨機三符 — ${new Date().toLocaleString()}`);
+}
+
+function showAll(){
+  const out = document.getElementById('grid');
+  out.innerHTML = '';
+  RUNES.forEach(r=>{
+    // 每個符文用 name 當 slot，背景以 name 決定
+    const bg = bgForSeed(r.name);
+    out.appendChild(makeCard(r.name, r, bg, false));
+  });
+  setInfo('所有 24 個符文');
+}
+
+function setInfo(txt){ document.getElementById('info').textContent = txt; }
+
+/* ------------------------
+   綁定按鈕與初始化
+   ------------------------ */
+document.getElementById('dailyBtn').addEventListener('click', dailyThree);
+document.getElementById('randomBtn').addEventListener('click', randomThree);
+document.getElementById('allBtn').addEventListener('click', showAll);
+
+// auto run daily on load
+dailyThree();
+
+</script>
+</body>
+</html>
