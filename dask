@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>每日盧恩三符占卜</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 1s ease-in-out; /* 漸變效果 */
+      color: white;
+      font-family: sans-serif;
+    }
+    .content {
+      background: rgba(0,0,0,0.5);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1>每日盧恩三符占卜</h1>
+    <button onclick="drawRunes()">抽取三符</button>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    // 這裡放你的背景圖片（可自行更換檔案名稱）
+    const backgrounds = [
+      "IMG_0058",
+      "IMG_0059",
+      "IMG_0060",
+      "IMG_0061"
+    ];
+    let bgIndex = 0;
+
+    function changeBackground() {
+      document.body.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
+      bgIndex = (bgIndex + 1) % backgrounds.length;
+    }
+
+    // 每 5 秒自動切換背景
+    setInterval(changeBackground, 5000);
+    changeBackground();
+
+    // 符文列表（舉例三個）
+    const runes = ["ᚠ Fehu", "ᚢ Uruz", "ᚦ Thurisaz", "ᚨ Ansuz", "ᚱ Raido", "ᚲ Kenaz"];
+
+    function drawRunes() {
+      let picked = [];
+      while (picked.length < 3) {
+        let rune = runes[Math.floor(Math.random() * runes.length)];
+        if (!picked.includes(rune)) picked.push(rune);
+      }
+      document.getElementById("result").innerText = "今日三符: " + picked.join(" | ");
+    }
+  </script>
+</body>
+</html>
