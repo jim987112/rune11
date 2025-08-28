@@ -112,17 +112,17 @@ function pickIndex(seed){
 }
 
 // 背景圖清單（根據你的 assets/bg/ 放的檔名調整）
-const LIST = [
-  'assets/IMG_0058.jpeg',
-  'assets/IMG_0059.jpeg',
-  'assets/IMG_0060.jpeg',
-  'assets/IMG_0061.jpeg'
+const BG_LIST = [
+  'assets/bg/img_0058.jpeg',
+  'assets/bg/img_0059.jpeg',
+  'assets/bg/img_0060.jpeg',
+  'assets/bg/img_0061.jpeg'
 ];
 // 若背景圖不存在或未上傳，檢查檔案能否載入，若失敗會 fallback 使用漸層背景
 function bgForSeed(seed){
   // seeded but deterministic
-  const idx = hash32(seed + '-bg') % LIST.length;
-  return LIST[idx];
+  const idx = hash32(seed + '-bg') % BG_LIST.length;
+  return BG_LIST[idx];
 }
 
 /* ------------------------
